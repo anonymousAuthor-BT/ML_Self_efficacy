@@ -1,0 +1,7 @@
+,Value
+R2_train,0.418379951
+R2_validation,0.417373956
+MAE_train,7.678009161
+MAE_test,7.683941327
+RMSE_train,10.12960345
+RMSE_test,10.1383193

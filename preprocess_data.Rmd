@@ -1,0 +1,541 @@
+
+
+```{r}
+#install.packages(c("foreign", "dplyr", "ggplot2", "tidyr", "intsvy", "haven", "ggrepel"))
+library("foreign")
+library("dplyr")
+library("ggplot2")
+library("tidyr")
+library("intsvy")
+library(haven)
+library(ggrepel)
+library(mirt)
+```
+
+section0: data preparation # the PISA 2018 data is publicly accessible.
+```{r}
+memory.limit(size = 200000)
+data <- read.spss("PISA2018.sav", use.value.labels = TRUE, to.data.frame = TRUE)
+```
+
+add focal data (REVERSED)
+```{r}
+#CATEGORICAL DATA NEEDS FURTHER MANIPULATIONS According to the index
+focal_ <- c(
+  
+# student background
+                       "ST004D01T", #gender (female/female)
+                       
+                       "ST005Q01TA", #mother_education (labels) 
+                      
+                       "ST006Q01TA", "ST006Q02TA","ST006Q03TA","ST006Q04TA", #mother_qualification (labels)
+                       
+                       "ST007Q01TA", #father_education (labels)
+                       
+                       "ST008Q01TA", "ST008Q02TA","ST008Q03TA","ST008Q04TA", #father_qualification (labels)
+                       
+                       "ST011Q01TA", "ST011Q02TA", "ST011Q03TA", "ST011Q04TA", "ST011Q05TA",   #study materials (mixed)
+                       "ST011Q06TA", "ST011Q07TA", "ST011Q08TA", "ST011Q09TA", "ST011Q10TA", 
+                       "ST011Q11TA", "ST011Q12TA", "ST011Q16NA",
+                       
+                       "ST013Q01TA", #number of books
+                       
+                       "ST012Q01TA", "ST012Q02TA", "ST012Q03TA", "ST012Q05NA", #home possessions 
+                       "ST012Q06NA", "ST012Q07NA", "ST012Q08NA", "ST012Q09NA", 
+
+#dropped country specific possessions                      
+                                        
+#dropped the occupation of parents
+  
+#below three [This is a filter question that routes to ST021 for students not born in the country of test, and in
+#the case of B-S-J-Z (China), for students not born in the province of test.], check if it is NA
+ 
+                       "ST019AQ01T", #self_immigration_background (label) 
+
+                       "ST019BQ01T", #mother immigration background
+
+                       "ST019CQ01T", #father immigration background
+                       
+                       "ST021Q01TA", #age_of_immigrating (numerical)
+  
+                       "ST125Q01NA", #age_of_<ISCED 0> (numerical*transfer)
+                      
+                       "ST126Q01TA", #age_of_<ISCED 1> (numerical*transfer)
+                      
+                       "ST127Q01TA", "ST127Q02TA", "ST127Q03TA", #repeated_grade (label)
+                      
+                       "ST022Q01TA", #language spoken at home
+
+                       "ST176Q01IA", "ST176Q02IA","ST176Q03IA","ST176Q05IA","ST176Q06IA","ST176Q07IA", #out-of-school reading experience
+
+                       "ST062Q01TA", "ST062Q02TA", #skipped_class
+                        
+                       "ST062Q03TA", #late_in_class
+                        
+                       "ST038Q03NA", "ST038Q04NA", "ST038Q05NA", "ST038Q06NA", "ST038Q07NA", "ST038Q08NA", #exposure_to_bulling  
+
+                       "ST123Q02NA", "ST123Q03NA", "ST123Q04NA", #parent_emotion_support
+#school goverance and policy
+
+                       "ST205Q01HA", "ST205Q02HA","ST205Q03HA","ST205Q04HA", #student_competition      
+                       "ST206Q01HA", "ST206Q02HA", "ST206Q03HA", "ST206Q04HA", #student_cooperation
+  
+#teaching and learning                    
+                      
+                      "ST097Q01TA", "ST097Q02TA","ST097Q03TA","ST097Q04TA","ST097Q05TA", #disciplinary_climate classroom
+
+                      "ST100Q01TA", "ST100Q02TA", "ST100Q03TA", "ST100Q04TA", #teacher_support
+                      
+                      "ST102Q01TA", "ST102Q02TA", "ST102Q03TA", "ST102Q04TA", #teacher-directed instruction
+                      
+                      "ST211Q01HA", "ST211Q02HA", "ST211Q03HA", #teacher_understanding
+                      
+                      "ST212Q01HA", "ST212Q02HA", "ST212Q03HA", #adaptive_instruction
+
+                      "ST104Q02NA", "ST104Q03NA", "ST104Q04NA", #teacher_feedback
+                      
+                      "ST213Q01HA", "ST213Q02HA", "ST213Q03HA", "ST213Q04HA", #teacher_enthusiasm
+
+                      "ST150Q01IA",  "ST150Q02IA", "ST150Q03IA", "ST150Q04HA",#school redaing activities
+                      
+                      "ST152Q05IA", "ST152Q06IA", "ST152Q07IA", "ST152Q08IA", #Teachers_stimulation_of_reading_engagement 
+
+                      "ST154Q01HA",  #pages of reading 
+                    
+                      "ST153Q01HA", "ST153Q02HA", "ST153Q03HA", "ST153Q04HA", "ST153Q05HA", "ST153Q06HA", "ST153Q08HA", "ST153Q09HA", "ST153Q10HA", 
+                      #teacher instructions
+                       
+                      "ST060Q01NA", #classes_per_week
+                                              
+                      "ST061Q01NA", #minutes_per_class
+
+#noncognitive and metacognition
+  
+                      "ST161Q01HA", "ST161Q02HA", "ST161Q03HA", "ST161Q06HA", "ST161Q07HA", "ST161Q08HA", #reading_self_concept 
+
+                      "ST158Q01HA", "ST158Q02HA", "ST158Q03HA", "ST158Q04HA", "ST158Q05HA", "ST158Q06HA", "ST158Q07HA", #knowledge and skills taught
+                    
+                      "ST160Q01IA", "ST160Q02IA", "ST160Q03IA", "ST160Q04IA", "ST160Q05IA", #reading interest
+
+                      "ST016Q01NA", #life_sanctification
+                      
+                      "ST036Q05TA", "ST036Q06TA", "ST036Q08TA",  #value_of_school
+
+                      "ST175Q01IA", #reading for enjoyment
+
+                      "ST163Q02HA", "ST163Q03HA", "ST163Q04HA", #reading evaluation after test
+
+
+                      "ST164Q01IA", "ST164Q02IA", "ST164Q03IA", "ST164Q04IA", "ST164Q05IA", "ST164Q06IA", 
+                      #learning strategies
+  
+                       "ST181Q02HA", "ST181Q03HA", "ST181Q04HA", #Attitudes_competition
+                  
+                       "ST182Q03HA", "ST182Q04HA", "ST182Q05HA", "ST182Q06HA", #Motivation_to_mastering
+            
+                       "ST183Q01HA", "ST183Q02HA", "ST183Q03HA", #fear_of_failure
+            
+                       "ST184Q01HA", #fixed_mindset (0~3)
+            
+                       "ST188Q01HA", "ST188Q02HA", "ST188Q03HA", "ST188Q06HA", "ST188Q07HA", #self_efficacy
+            
+                       "ST185Q01HA", "ST185Q02HA", "ST185Q03HA", #Meaning_in_life
+
+                       "ST186Q05HA", "ST186Q01HA", "ST186Q03HA", #positive emotions
+
+#education expectation is dropped because of high non response rate
+
+#negative emotions has low internal consistency
+
+                        "ST186Q06HA", #scared,
+                        "ST186Q07HA", #lively
+                        "ST186Q10HA", #miserable
+                        "ST186Q09HA",#proud
+                        "ST186Q02HA",#afraid
+                        "ST186Q08HA",#sad
+
+                        "ST208Q01HA", "ST208Q02HA", "ST208Q04HA", #learning_goal
+           
+                        "ST034Q01TA","ST034Q02TA","ST034Q03TA","ST034Q04TA","ST034Q05TA","ST034Q06TA", #sense_of_belonging
+
+                        "ST215Q01HA", "ST215Q02HA", "ST215Q03HA", "ST215Q04HA", "ST215Q05HA", #empathy
+
+                        "ST207Q01HA", "ST207Q02HA", "ST207Q03HA", "ST207Q04HA", "ST207Q05HA", #attitude_bulling
+                    
+                        "PV1READ", "PV2READ", "PV3READ", "PV4READ", "PV5READ", #reading_performance
+                        "PV6READ", "PV7READ", "PV8READ", "PV9READ", "PV10READ",
+                                   
+                        "PV1MATH", "PV2MATH", "PV3MATH", "PV4MATH", "PV5MATH", #math_performance
+                        "PV6MATH", "PV7MATH", "PV8MATH", "PV9MATH", "PV10MATH", 
+                                   
+                        "PV1SCIE", "PV2SCIE", "PV3SCIE", "PV4SCIE", "PV5SCIE", #science_performance
+                        "PV6SCIE", "PV7SCIE", "PV8SCIE", "PV9SCIE", "PV10SCIE",
+
+                        "CNTSCHID", "CNTSTUID", "CNTRYID")
+
+
+names <- colnames(data)
+setdiff(focal_, names)
+
+dataBACK <- data[focal_]      
+```
+
+
+```{r}
+data <- dataBACK
+
+for(i in 1:ncol(data)){
+   data[, i] = as.character(data[, i]) 
+}
+
+data[data == "Strongly disagree"] <- "0"
+data[data == "Disagree"] <- "1"
+data[data == "Agree"] <- "2"
+data[data == "Strongly agree"] <- "3"
+
+data[data == "ISCED level 5A or 6"] <- "6"
+data[data == "ISCED level 5B"] <- "5"
+data[data == "ISCED level 3A"] <- "4"
+data[data == "ISCED level 3B, 3C"] <- "3"
+data[data == "ISCED level 2"] <- "2"
+data[data == "ISCED level 1"] <- "1"
+data[data == "She did not complete  ISCED level 1"] <- "0"
+data[data == "He did not complete  ISCED level 1"] <- "0"
+
+data[data == "Yes"] <- "1"
+data[data == "No"] <- "0"
+
+data[data == "None"] <- "0"
+data[data == "One"] <- "1"
+data[data == "Two"] <- "2"
+data[data == "Three or more"] <- "3"
+data[data == "Three"] <- "3"
+data[data == "Four or more"] <- "4"
+
+data[data == "0-10 books"] <- "0"
+data[data == "11-25 books"] <- "1"
+data[data == "26-100 books"] <- "2"
+data[data == "101-200 books"] <- "3"
+data[data == "201-500 books"] <- "4"
+data[data == "More than 500 books"] <- "5"
+
+data[data == "Country of test"] <- "0"
+data[data == "Other country"] <- "1"
+
+data[data == "I do not remember"] <- NA
+data[data == "I did not attend ISCED 0"] <- "0"
+data[data == "1 year or younger"] <- "1"
+data[data == "2 years"] <- "2"
+data[data == "3 years"] <- "3"
+data[data == "4 years"] <- "4"
+data[data == "5 years"] <- "5"
+data[data == "6 years or older"] <- "6"
+
+data[data == "No, never"] <- "0"
+data[data == "Yes, once"] <- "1"
+data[data == "Yes, twice or more"] <- "2"
+
+data[data == "Every lesson"] <- "3"
+data[data == "Most lessons"] <- "2"
+data[data == "some lessons"] <- "1"
+
+data[data  == "Never or hardly ever"] <- "0"
+data[data  == "In some lessons"] <- "1"
+data[data  == "In most lessons"] <- "2"
+data[data == "In all lessons"] <- "3"
+
+data[data  == "Never or almost never"] <- "0"
+data[data == "Some lessons"] <- "1"
+data[data== "Many lessons"] <- "2"
+data[data == "Every lesson or almost every lesson"] <- "3"
+
+data[data == "I don't know what it is"] <- NA  
+data[data == "Never or almost never"] <- "0"
+data[data == "Several times a month"] <- "1"
+data[data== "Several times a week"] <- "2"
+data[data == "Several times a day"] <- "3"
+
+data[data == "Never"] <- "0"
+data[data == "Rarely"] <- "1"
+data[data == "Sometimes"] <- "2"
+data[data == "Always"] <- "3"
+
+data[data == "Female"] <- "0"
+data[data == "Male"] <- "1"
+
+data[data == "Not at all true of me"] <- "0"
+data[data == "Slightly true of me"] <- "1"
+data[data== "Moderately true of me"] <- "2"
+data[data == "Very true of me"] <- "3"
+data[data == "Extremely true of me"] <- "4"
+
+data[data == "Not at all like me"] <- "0"
+data[data == "Not much like me"] <- "1"
+data[data == "Somewhat like me"] <- "2"
+data[data == "Mostly like me"] <- "3"
+data[data == "Very much like me"] <- "4"
+
+data[data == "Not at all true"] <- "0"
+data[data == "Slightly true"] <- "1"
+data[data == "Very true"] <- "2"
+data[data == "Extremely true"] <- "3"
+
+data[data == "One or two times"] <- "1"
+data[data == "Three or four times"] <- "2"
+data[data == "Five or more times"] <- "3"
+
+data[data == "I did not attend  ISCED 0"] <- "0"
+data[data == "A few times a year"] <- "1"
+data[data == "A few times a month"] <- "2"
+
+data[data == "Once a week or more"] <- "3"
+data[data == "9 or older"] <- "9"
+
+data$ST021Q01TA <- as.numeric(as.factor(data$ST021Q01TA))
+data$CNTRYID <- as.numeric(as.factor(data$CNTRYID))
+
+data[data == "Language of the test"] <- "0"
+data[data == "Other language"] <- "1"
+
+data[data == "One page or less"] <- "0"
+data[data == "Between 2 and 10 pages"] <- "1"
+data[data == "Between 11 and 50 pages"] <- "2"
+data[data == "Between 51 and 100 pages"] <- "3"
+data[data == "Between 101 and 500 pages"] <- "4"
+data[data == "More than 500 pages"] <- "5"
+data[data == "One page or less"] <- "6"
+
+data[data == "One page or less"] <- "0"
+data[data == "Between 2 and 10 pages"] <- "1"
+data[data == "Between 11 and 50 pages"] <- "0"
+data[data == "Between 51 and 100 pages"] <- "1"
+data[data == "Between 101 and 500 pages"] <- "0"
+data[data == "More than 500 pages"] <- "1"
+data[data == "One page or less"] <- "0"
+
+data[data == "Not at all"] <- "0"
+data[data == "Once"] <- "1"
+data[data == "Two or three times"] <- "2"
+data[data == "Many times"] <- "3"
+
+
+data[data == "I do not read for enjoyment"] <- "0"
+data[data == "30 minutes or less a day"] <- "1"
+data[data == "More than 30 minutes to less than 60 minutes a day"] <- "2"
+data[data == "1 to 2 hours a day"] <- "3"
+data[data == "More than 2 hours a day"] <- "4"
+
+
+data[data == "Not useful at all(1)"] <- "0"
+data[data == "(2)"] <- "1"
+data[data == "(3)"] <- "2"
+data[data == "(4)"] <- "3"
+data[data == "(5)"] <- "4"
+data[data == "Very useful(6)"] <- "5"
+
+
+databackup <- data
+data <- databackup
+```
+
+
+```{r}
+for(i in 1:ncol(data)){
+   data[, i] = as.numeric(data[, i]) 
+}
+
+number_data <- data
+data <- number_data
+
+#drop rows if self-efficacy is missing and then seperate self_efficacy at the point of 5
+data <-  data[complete.cases(data[c("ST188Q01HA", "ST188Q02HA", "ST188Q03HA", "ST188Q06HA", "ST188Q07HA")]),] 
+
+for(i in 1:ncol(data)){
+  data[is.na(data[,i]), i] <- median(data[,i], na.rm = TRUE)
+}
+
+#reverse scores
+data$ST161Q06HA <- abs(data$ST161Q06HA - 3)
+data$ST161Q07HA <- abs(data$ST161Q07HA - 3)
+data$ST161Q08HA <- abs(data$ST161Q08HA - 3)
+data$ST160Q04IA <- abs(data$ST160Q04IA - 3)
+data$ST160Q05IA <- abs(data$ST160Q05IA - 3)
+```
+
+```{r}
+library(mirt)
+#step 1, calculate 2PL irt scores
+self_efficacy <- data[c("ST188Q01HA", "ST188Q02HA", "ST188Q03HA", 
+                     "ST188Q06HA", "ST188Q07HA" )]
+model.gpcm <- 'self_efficacy = 1-5' 
+results.gpcm <- mirt(data=self_efficacy, model=model.gpcm, itemtype="gpcm", SE=TRUE, verbose=FALSE)
+fullscores_gpcm <- fscores(results.gpcm)
+data["self_efficacy"] <- fullscores_gpcm[,1]
+```
+
+
+```{r}
+data1 <- transmute(data,
+# student background
+                      gender = ST004D01T, 
+                       
+                      mother_education = ST005Q01TA, 
+                      
+                      mother_qualification = ST006Q01TA + ST006Q02TA + ST006Q03TA + ST006Q04TA,
+                       
+                      father_education = ST007Q01TA, 
+                       
+                      father_qualification = ST008Q01TA + ST008Q02TA + ST008Q03TA + ST008Q04TA, 
+                       
+                      study_posessions = ST011Q01TA+ ST011Q02TA+ ST011Q03TA+ ST011Q04TA+ ST011Q05TA +    
+                       ST011Q06TA+ ST011Q07TA+ ST011Q08TA+ ST011Q09TA+ ST011Q10TA +  
+                       ST011Q11TA+ ST011Q12TA+ ST011Q16NA,
+                       
+                      number_of_books = ST013Q01TA, 
+                       
+                      home_posessions = ST012Q01TA+ ST012Q02TA+ ST012Q03TA+ ST012Q05NA+ 
+                       ST012Q06NA+ ST012Q07NA+ ST012Q08NA+ ST012Q09NA, 
+                       
+                      age_of_immigration = ST021Q01TA, 
+  
+                      age_of_ISCED_0 = ST125Q01NA, 
+                      
+                      age_of_ISCED_1 = ST126Q01TA, 
+                      
+                      repeated_grade = ST127Q01TA + ST127Q02TA + ST127Q03TA, 
+                      
+                      out_of_school_reading = ST176Q01IA + ST176Q02IA + ST176Q03IA + ST176Q05IA + ST176Q06IA + ST176Q07IA, 
+
+                      skipped_class = ST062Q01TA + ST062Q02TA,
+                        
+                      being_late_in_class = ST062Q03TA, 
+                        
+                      exposure_to_bulling = ST038Q03NA+ ST038Q04NA+ ST038Q05NA+ ST038Q06NA+ ST038Q07NA+ ST038Q08NA,
+
+                      parent_emotion_support = ST123Q02NA+ ST123Q03NA+ ST123Q04NA,
+
+                      language_at_home = ST022Q01TA, 
+#school goverance and policy
+
+                      student_competition = ST205Q01HA+ ST205Q02HA+ ST205Q03HA+ ST205Q04HA ,  
+  
+                      student_cooperation = ST206Q01HA+ ST206Q02HA+ ST206Q03HA+ ST206Q04HA, 
+#teaching and learning                    
+                      
+                      disciplinary_climate = ST097Q01TA+ ST097Q02TA + ST097Q03TA + ST097Q04TA + ST097Q05TA,
+
+                      teacher_support = ST100Q01TA+ ST100Q02TA+ ST100Q03TA+ ST100Q04TA, 
+                      
+                      teacher_directed_instruction = ST102Q01TA+ ST102Q02TA+ ST102Q03TA+ ST102Q04TA,
+                      
+                      teacher_understanding = ST211Q01HA+ ST211Q02HA+ ST211Q03HA, 
+                      
+                      adaptive_instruction = ST212Q01HA+ ST212Q02HA+ ST212Q03HA, 
+
+                      teacher_feedback = ST104Q02NA+ ST104Q03NA+ ST104Q04NA,
+                      
+                      teacher_enthusiasm = ST213Q01HA+ ST213Q02HA+ ST213Q03HA+ ST213Q04HA, 
+
+                      school_reading = ST150Q01IA + ST150Q02IA + ST150Q03IA+ ST150Q04HA,
+                      
+                      teacher_stimulation = ST152Q05IA+ ST152Q06IA+ ST152Q07IA+ ST152Q08IA,
+
+                      pages_of_reading  = ST154Q01HA,  
+
+                      teacher_instructions = ST153Q01HA+ ST153Q02HA+ ST153Q03HA+ ST153Q04HA +  
+                      ST153Q05HA+ ST153Q06HA+ ST153Q08HA+ ST153Q09HA+ ST153Q10HA, 
+                       
+                      class_per_week = ST060Q01NA,
+                                              
+                      minutes_per_class = ST061Q01NA, 
+
+#noncognitive and metacognition
+  
+                      reading_self_concept = ST161Q01HA+ ST161Q02HA+ ST161Q03HA+ ST161Q06HA+ ST161Q07HA+ ST161Q08HA, 
+
+                      knowledge_skills_taught = ST158Q01HA+ ST158Q02HA+ ST158Q03HA+
+                      ST158Q04HA+ ST158Q05HA+ ST158Q06HA+ ST158Q07HA, 
+                    
+                      reading_interest = ST160Q01IA+ ST160Q02IA+ ST160Q03IA+ ST160Q04IA+ ST160Q05IA, 
+
+                      life_satisfaction = ST016Q01NA, 
+                      
+                      value_school = ST036Q05TA+ ST036Q06TA+ ST036Q08TA,
+
+                      reading_for_enjoyment = ST175Q01IA, 
+
+                      reading_for_test = ST163Q02HA+ ST163Q03HA+ ST163Q04HA, 
+
+                      learning_strategies = ST164Q01IA+ ST164Q02IA+ ST164Q03IA+ ST164Q04IA+ ST164Q05IA+ ST164Q06IA, 
+
+                       attitudes_competition= ST181Q02HA+ ST181Q03HA+ ST181Q04HA, 
+                  
+                      motivation_to_mastering = ST182Q03HA+ ST182Q04HA+ ST182Q05HA+ ST182Q06HA, 
+            
+                       fear_of_failure = ST183Q01HA+ ST183Q02HA+ ST183Q03HA,
+            
+                       fixed_mindset= ST184Q01HA, 
+          
+                       meaning_in_life = ST185Q01HA+ ST185Q02HA+ ST185Q03HA, 
+
+                       posotive_emotions = ST186Q05HA+ ST186Q01HA+ ST186Q03HA, 
+
+#negative emotions has low internal consistency
+
+                       scared =  ST186Q06HA, 
+                       lively = ST186Q07HA, 
+                       miserable = ST186Q10HA, 
+                       proud = ST186Q09HA,
+                       afraid = ST186Q02HA,
+                       sad = ST186Q08HA,
+
+                       learning_goal = ST208Q01HA+ ST208Q02HA+ ST208Q04HA, 
+           
+                       sense_of_belongling = ST034Q01TA+ ST034Q02TA + ST034Q03TA + ST034Q04TA + ST034Q05TA + ST034Q06TA, 
+
+                       empathy =ST215Q01HA+ ST215Q02HA+ ST215Q03HA+ ST215Q04HA+ ST215Q05HA,
+
+                       attitude_bullying = ST207Q01HA + ST207Q02HA + ST207Q03HA+ ST207Q04HA+ ST207Q05HA, 
+                    
+                       reading_performance = 1/10*(PV1READ + PV2READ + PV3READ + PV4READ+ PV5READ + 
+                                            PV6READ+ PV7READ+ PV8READ+ PV9READ+ PV10READ),
+                      
+                       math_performance = 1/10*(PV1MATH+ PV2MATH+ PV3MATH+ PV4MATH+ PV5MATH+ 
+                                         PV6MATH+ PV7MATH+ PV8MATH+ PV9MATH+ PV10MATH), 
+                      
+                       science_performance = 1/10*(PV1SCIE+ PV2SCIE+ PV3SCIE+ PV4SCIE+ PV5SCIE+ 
+                                              PV6SCIE+ PV7SCIE+ PV8SCIE+ PV9SCIE+ PV10SCIE),
+
+                      self_immigration = ST019AQ01T, 
+                      mother_immigration = ST019BQ01T, 
+                      father_immigration = ST019CQ01T, 
+                      
+                      self_efficacy = self_efficacy,
+                      )
+
+```
+
+
+```{r}
+library(fastDummies)
+country <- fastDummies::dummy_cols(dataBACK$CNTRYID, remove_selected_columns = TRUE)
+
+data_x <- cbind(country, dataBACK)
+data_x <-  data_x[complete.cases(data_x[c("ST188Q01HA", "ST188Q02HA", "ST188Q03HA", "ST188Q06HA", "ST188Q07HA")]),] 
+
+data2 <- cbind(data1, data_x[,1:82])
+```
+
+
+```{r}
+data2 <- cbind(data2, data$CNTSCHID)
+
+write.csv(data2, "student_level.csv")
+print("done")
+```
+
+
+```{r}
+unique(dataBACK$CNTRYID)
+```
+
