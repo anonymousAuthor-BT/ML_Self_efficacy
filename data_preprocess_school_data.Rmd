@@ -1,0 +1,302 @@
+
+---
+```{r}
+#install.packages(c("foreign", "dplyr", "ggplot2", "tidyr", "intsvy", "haven", "ggrepel"))
+library("foreign")
+library("dplyr")
+library("ggplot2")
+library("tidyr")
+library("intsvy")
+library(haven)
+library(ggrepel)
+library(fastDummies)
+```
+
+section0: data preparation 
+```{r}
+memory.limit(size = 120000)
+data <- read.spss("school_data.sav", use.value.labels = FALSE, to.data.frame = TRUE)
+
+class(data)
+rev(colnames(data))
+
+databackup <- data
+```
+
+
+#####school level data
+```{r}
+focal <- c(
+
+#School id
+  "CNTSCHID",
+  
+#School location:
+  "SC001Q01TA", 
+
+#school owner:
+  "SC013Q01TA",
+  
+#school disadvantages:
+  "SC017Q02NA", "SC017Q03NA", "SC017Q04NA", "SC017Q05NA", "SC017Q06NA", "SC017Q07NA", "SC017Q08NA",
+
+#school competition:
+  "SC011Q01TA",
+
+#differential classrooms
+  "SC042Q01TA",
+  "SC042Q02TA",
+
+#purpose of assessments
+  "SC154Q01HA", "SC154Q02WA", "SC154Q03WA", "SC154Q04WA", "SC154Q05WA", "SC154Q06WA", "SC154Q07WA", "SC154Q08WA", "SC154Q09HA", "SC154Q10WA", "SC154Q11HA",
+  
+#release of assessment results
+  "SC036Q01TA", "SC036Q02TA", "SC036Q03NA",
+  
+#school-level students adverse behaviors
+  "SC061Q01TA", "SC061Q02TA", "SC061Q03TA", "SC061Q04TA", "SC061Q05TA", "SC061Q11HA", "SC061Q06TA", "SC061Q07TA", "SC061Q08TA", "SC061Q09TA", "SC061Q10TA",
+
+#enrollment by gender
+  "SC002Q01TA",  "SC002Q02TA",
+
+#average classroom size
+  "SC003Q01TA",
+
+#after-class activities
+  "SC053Q01TA", "SC053Q02TA", "SC053Q03TA", "SC053Q04TA", "SC053Q12IA", "SC053Q13IA", "SC053Q09TA",
+  "SC053Q10TA", "SC053Q14IA", "SC053Q15IA", "SC053Q16IA",  
+
+#help for learning
+  "SC052Q01NA", "SC052Q02NA", "SC052Q03HA",
+
+#funding source
+  "SC016Q01TA", "SC016Q02TA", "SC016Q03TA", "SC016Q04TA", 
+
+#admision criteria
+ "SC012Q01TA", "SC012Q02TA", "SC012Q03TA", "SC012Q04TA", 
+ "SC012Q05TA", "SC012Q06TA", "SC012Q07TA", 
+
+#education quality assurance and improvements
+ "SC037Q01TA", "SC037Q02TA", "SC037Q03TA", "SC037Q04TA", 
+ "SC037Q05NA", "SC037Q06NA", "SC037Q07TA", "SC037Q08TA", "SC037Q09TA",    "SC037Q10NA", 
+
+#multicultural learning (cat)
+ "SC165Q01HA", "SC165Q02HA", "SC165Q03HA", "SC165Q04HA", 
+ "SC165Q05HA", "SC165Q06HA", "SC165Q07HA", "SC165Q08HA", "SC165Q09HA",    "SC165Q10HA", "SC167Q01HA", "SC167Q02HA", "SC167Q03HA", "SC167Q04HA", "SC167Q05HA", "SC167Q06HA",
+
+#multicultural value 
+   "SC166Q02HA", "SC166Q03HA", "SC166Q05HA", "SC166Q06HA",
+
+#learning global-issues 
+  "SC158Q01HA", "SC158Q02HA", "SC158Q04HA", "SC158Q07HA", "SC158Q08HA", "SC158Q09HA", "SC158Q12HA", 
+
+#students' learning barriers (the third one is home-factor)
+  "SC048Q01NA", "SC048Q02NA", "SC048Q03NA", 
+
+#percentage of teaching staff attended professional development program
+  "SC025Q01NA",
+
+# international academics (cat)
+   "SC159Q01HA",
+
+# percentage of students did not get cerificate
+  "SC164Q01HA",
+
+# social engagement 
+  "SC064Q03TA", "SC064Q04NA",
+
+# additional language course 
+  "SC152Q01HA"
+)
+
+data <- databackup[focal]  
+```
+
+```{r}
+for(i in 1:ncol(data)){
+  data[is.na(data[,i]), i] <- median(data[,i], na.rm = TRUE)
+}
+
+data <- transmute(data, 
+
+School_location = SC001Q01TA,
+
+public_or_private =  SC013Q01TA,
+  
+school_disadvantages1 = SC017Q02NA,
+
+school_disadvantages2 = SC017Q03NA,
+
+school_disadvantages3 = SC017Q04NA,
+
+school_disadvantages4 = SC017Q05NA,
+
+school_disadvantages5 = SC017Q06NA,
+
+school_disadvantages6 = SC017Q07NA,
+
+school_disadvantages7 = SC017Q08NA,
+
+school_competition =  SC011Q01TA,
+
+differential_classrooms = SC042Q01TA,
+
+classroom_differentiation = SC042Q02TA,
+
+purpose_of_assessments1 = SC154Q01HA,
+
+purpose_of_assessments2 = SC154Q02WA,
+
+purpose_of_assessments3 = SC154Q03WA,
+
+purpose_of_assessments4 = SC154Q04WA,
+
+purpose_of_assessments5 = SC154Q05WA,
+
+purpose_of_assessments6 = SC154Q06WA,
+
+purpose_of_assessments7 = SC154Q07WA,
+
+purpose_of_assessments8 = SC154Q08WA,
+
+purpose_of_assessments9 = SC154Q09HA,
+
+purpose_of_assessments10 = SC154Q10WA,
+
+purpose_of_assessments11 = SC154Q11HA,
+
+release_of_assessment_results = SC036Q01TA,
+
+track_grades = SC036Q02TA, 
+
+release_assessment_results_to_parents = SC036Q03NA,
+  
+school_level_adverse_behaviors1 = SC061Q01TA,
+school_level_adverse_behaviors2 = SC061Q02TA,
+school_level_adverse_behaviors3 = SC061Q03TA,
+school_level_adverse_behaviors4 = SC061Q04TA,
+school_level_adverse_behaviors5 = SC061Q05TA,
+school_level_adverse_behaviors6 = SC061Q06TA,
+school_level_adverse_behaviors7 = SC061Q07TA,
+school_level_adverse_behaviors8 = SC061Q08TA,
+school_level_adverse_behaviors9 = SC061Q09TA,
+school_level_adverse_behaviors10 = SC061Q10TA,
+school_level_adverse_behaviors11 = SC061Q11HA,
+
+male_number = SC002Q01TA,
+
+female_number = SC002Q02TA,
+
+average_classroom_size = SC003Q01TA,
+
+after_class_activities1 = SC053Q02TA,
+after_class_activities2 = SC053Q03TA,
+after_class_activities3 = SC053Q04TA,
+after_class_activities4 = SC053Q12IA,
+after_class_activities5 = SC053Q13IA,
+after_class_activities6 = SC053Q09TA,
+after_class_activities7 = SC053Q10TA,
+after_class_activities8 = SC053Q14IA,
+after_class_activities9 = SC053Q15IA,
+after_class_activities10 = SC053Q16IA,
+
+help_learning1 = SC052Q01NA,
+help_learning2 = SC052Q02NA,
+help_learning3 = SC052Q03HA,
+
+CNTSCHID = CNTSCHID,
+
+#funding source
+funding1 = SC016Q01TA, 
+funding2 = SC016Q02TA, 
+funding3 =SC016Q03TA, 
+funding4 =SC016Q04TA, 
+
+#admision criteria
+admission1 = SC012Q01TA, 
+admission2 = SC012Q02TA, 
+admission3 = SC012Q03TA, 
+admission4 = SC012Q04TA, 
+admission5 = SC012Q05TA, 
+admission6 = SC012Q06TA, 
+admission7 = SC012Q07TA, 
+
+#education quality assurance and improvements
+quality_assurance1 = SC037Q01TA, 
+quality_assurance2 = SC037Q02TA, 
+quality_assurance3 = SC037Q03TA, 
+quality_assurance4 = SC037Q04TA, 
+quality_assurance5 = SC037Q05NA, 
+quality_assurance6 = SC037Q06NA, 
+quality_assurance7 = SC037Q07TA, 
+quality_assurance8 = SC037Q08TA, 
+quality_assurance9 = SC037Q09TA,  
+quality_assurance10 = SC037Q10NA, 
+
+#multicultural learning (cat)
+multicultural_learning1 = SC165Q01HA, 
+multicultural_learning2 = SC165Q02HA, 
+multicultural_learning3 = SC165Q03HA, 
+multicultural_learning4 = SC165Q04HA, 
+multicultural_learning5 = SC165Q05HA, 
+multicultural_learning6 = SC165Q06HA, 
+multicultural_learning7 = SC165Q07HA, 
+multicultural_learning8 = SC165Q08HA, 
+multicultural_learning9 = SC165Q09HA,
+multicultural_learning10 = SC165Q10HA,
+multicultural_learning11 = SC167Q01HA,
+multicultural_learning12 = SC167Q02HA,
+multicultural_learning13 = SC167Q03HA,
+multicultural_learning14 = SC167Q04HA,
+multicultural_learning15 = SC167Q05HA,
+multicultural_learning16 = SC167Q06HA,
+
+#multicultural value 
+multicultural_value1= SC166Q02HA, 
+multicultural_value2=SC166Q03HA,
+multicultural_value3=SC166Q05HA,
+multicultural_value4=SC166Q06HA,
+
+#learning global-issues 
+global_issue1=SC158Q01HA, 
+global_issue2=SC158Q02HA, 
+global_issue3=SC158Q04HA, 
+global_issue4=SC158Q07HA, 
+global_issue5=SC158Q08HA, 
+global_issue6=SC158Q09HA, 
+global_issue7=SC158Q12HA, 
+
+#students' learning barriers (the third one is home-factor)
+learning_barrier1 = SC048Q01NA, 
+learning_barrier2 = SC048Q02NA, 
+learning_barrier3 = SC048Q03NA, 
+
+#school personnel
+school_personnel1 = SC018Q01TA, 
+school_personnel2 = SC018Q02TA, 
+school_personnel3 = SC018Q05NA,
+school_personnel4 = SC018Q06NA,
+school_personnel5 = SC018Q07NA,
+
+#percentage of teaching staff attended professional development program
+professional_development_school =  SC025Q01NA,
+
+# international academics (cat)
+international_communication =   SC159Q01HA,
+
+# percentage of students did not get cerificate
+fail_rate =  SC164Q01HA,
+
+# social engagement 
+social_engagement1 =  SC064Q03TA, 
+social_engagement2 = SC064Q04NA,
+
+# additional language course 
+additional_language =  SC152Q01HA
+)
+```
+
+```{r}
+write.csv(data, "School_level.csv")
+print("done")
+```
